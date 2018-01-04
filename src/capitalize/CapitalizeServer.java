@@ -20,9 +20,15 @@ import java.util.logging.Logger;
  */
 public class CapitalizeServer {
 	public static void main(String[] args) throws IOException {
-		System.out.println("The capitalization server is running");
 		int clientNumber = 0;
+		
+		/**
+		 * Start a server by give it a socket listener at port 9898
+		 * while server is running it waits for client's connection request
+		 * Then a thread to handle new client is created
+		 */
 		ServerSocket listener = new ServerSocket(9898);
+		System.out.println("The capitalization server is running");
 		try {
 			while(true){
 				new Capitalizer(listener.accept(), clientNumber++).start();
@@ -32,10 +38,16 @@ public class CapitalizeServer {
 		}
 	}
 
+	/**
+	 * Handle one client - server connection
+	 * First it sends to client a welcoming message
+	 * then each time client send a text, this class make all text capitalize
+	 * and send back text to client
+	 */
 	private static class Capitalizer extends Thread {
 
-		private Socket socket;
-		private int clientNumber;
+		private final Socket socket;
+		private final int clientNumber;
 		
 		public Capitalizer(Socket socket, int clientNumber) {
 			this.socket = socket;
@@ -69,7 +81,7 @@ public class CapitalizeServer {
 					Logger.getLogger(CapitalizeServer.class.getName()).log(Level.WARNING, "cant close socket");
 					Logger.getLogger(CapitalizeServer.class.getName()).log(Level.WARNING, null, ex);
 				}
-				Logger.getLogger(CapitalizeServer.class.getName()).log(Level.SEVERE, "Connect with client #" + clientNumber + " closed");
+				Logger.getLogger(CapitalizeServer.class.getName()).log(Level.SEVERE, "Connect with client #{0} closed", clientNumber);
 			}
 		}
 	}
