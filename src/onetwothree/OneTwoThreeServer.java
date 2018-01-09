@@ -6,8 +6,12 @@
 package onetwothree;
 
 import com.google.gson.Gson;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -48,11 +52,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         jScrollPane1.setViewportView(areaLog);
 
         listUser.setBorder(javax.swing.BorderFactory.createTitledBorder("Online User List"));
-        listUser.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
         listUser.setFocusable(false);
         jScrollPane2.setViewportView(listUser);
 
@@ -132,7 +131,17 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 		
 		listener = new ServerSocket(8901);
 		System.out.println("Keo Bua Bao Server is Running");
-		
+		String a = "{\n" +
+"    \"header\": \"HELLO\",\n" +
+"    \"content\": {\n" +
+"      \"username\": \"trungtm\",\n" +
+"      \"password\": 12345\n" +
+"    },\n" +
+"    \"from\": \"USER\",\n" +
+"    \"to\": \"SERVER\"\n" +
+"  }";
+                MessageHandler mess = new MessageHandler(a);
+                mess.handler();
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -141,11 +150,11 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 		});
 		
 		try {
-			while(true){
-				
-			}
+                    while(true){
+                        
+                    }
 		} finally {
-			listener.close();
+                    listener.close();
 		}
 		
 		
@@ -158,6 +167,33 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JList<String> listUser;
     // End of variables declaration//GEN-END:variables
+    
+    private class Authentication extends Thread {
+    
+        private final Socket socket;
+        
+        public Authentication(Socket _socket){
+            this.socket = _socket;
+        }
+        public void run(){
+            try {
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream()));
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                while(true) {
+                    String input = in.readLine();
+                    MessageHandler message = new MessageHandler(input);
+                    if(message.isMessage()){
+                        
+                    }
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+    }
+
 }
 
 

@@ -7,6 +7,15 @@ package onetwothree;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
+import java.sql.DriverManager;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import static onetwothree.ConstantValue.CLIENT_CONNECT;
 import static onetwothree.ConstantValue.DEFAULT_TO;
 
 
@@ -142,6 +151,109 @@ public class MessageHandler {
 		this.to = to;
 	}
 	
+        
+        public String handler() throws Exception{
+            if(this.header == CLIENT_CONNECT) {
+                try {
+                    AuthMessage authMess = new AuthMessage(this.content);
+                    String username = authMess.getUsername();
+                    String password = authMess.getPassword();
+                    System.out.println("u " + username + " p " + password);
+                    Connection conn = DriverManager.getConnection(
+                            "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
+                    PreparedStatement stmt = conn.prepareStatement(
+                            "select * from users WHERE username = ? AND password = ? AND status = 0");
+                    stmt.setString(1, username);
+                    stmt.setString(2, password);
+                    ResultSet rset = stmt.executeQuery();
+                    if(rset.next()){
+                        MessageHandler response;
+                        response = new MessageHandler("HELLO", "OK", "SERVER", username);
+                        return response.toJSON();
+                    } else {
+                        return "";
+                    }
+                } catch (SQLException ex) {
+                    Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            return null;
+            
+        }
 	
-	
+}
+class AuthMessage {
+    @SerializedName("username")
+    private String username;
+    @SerializedName("password")
+    private String password;
+
+    public AuthMessage(String jsonMessage){
+        Gson gson = new Gson();
+        AuthMessage mess = gson.fromJson(jsonMessage, AuthMessage.class);
+
+        this.username  = mess.getUsername();
+        this.password = mess.getPassword();
+
+
+    }
+
+    public AuthMessage(String username, String password){
+            this.username  = username;
+            this.password = password;
+    }
+
+    public boolean isMessage(){
+            return !(this.username == null || this.password == null);
+    }
+    public boolean isMessage(AuthMessage authMessageHandler){
+            return !(authMessageHandler.getUsername() == null || authMessageHandler.getPassword() == null);
+    }
+
+    public String toJSON() throws Exception{
+        if(!isMessage()){
+            throw new Exception("Message is init wrong way!");
+        }
+        Gson gson = new Gson();
+        return gson.toJson(new AuthMessage(this.username, this.password));
+    }
+
+    public String toJSON(AuthMessage authMessageHandler) throws Exception{
+            if(!isMessage(authMessageHandler)){
+                    throw new Exception("Message is init wrong way!");
+            }
+            Gson gson = new Gson();
+            return gson.toJson(authMessageHandler);
+    }
+    
+    /**
+     * @return the header
+     */
+    public String getUsername() {
+            return username;
+    }
+
+    /**
+     * @param header the header to set
+     */
+    public void setUsername(String username) {
+            this.username = username;
+    }
+
+    /**
+     * @return the header
+     */
+    public String getPassword() {
+            return password;
+    }
+
+    /**
+     * @param header the header to set
+     */
+    public void setPassWord(String password) {
+            this.password = password;
+    }
+    
+    // TODO: make a class and let AuthMessage extends it, content will be object of that class 
+    // then content = new AuthMessage
 }
