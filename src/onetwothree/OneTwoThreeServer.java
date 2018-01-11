@@ -14,6 +14,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONObject;
 
 /**
  *
@@ -131,17 +132,11 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 		
 		listener = new ServerSocket(8901);
 		System.out.println("Keo Bua Bao Server is Running");
-		String a = "{\n" +
-"    \"header\": \"HELLO\",\n" +
-"    \"content\": {\n" +
-"      \"username\": \"trungtm\",\n" +
-"      \"password\": 12345\n" +
-"    },\n" +
-"    \"from\": \"USER\",\n" +
-"    \"to\": \"SERVER\"\n" +
-"  }";
-                MessageHandler mess = new MessageHandler(a);
-                mess.handler();
+		
+//                JSONObject jsonObj = new JSONObject(a);
+//                JSONObject content = jsonObj.getJSONObject("content");
+//                String pass = content.getString("username");
+//                System.out.println(pass);
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -151,7 +146,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 		
 		try {
                     while(true){
-                        
+                        new Authentication(listener.accept()).start();
                     }
 		} finally {
                     listener.close();
@@ -168,7 +163,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
     private javax.swing.JList<String> listUser;
     // End of variables declaration//GEN-END:variables
     
-    private class Authentication extends Thread {
+    private static class Authentication extends Thread {
     
         private final Socket socket;
         
@@ -184,10 +179,14 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                     String input = in.readLine();
                     MessageHandler message = new MessageHandler(input);
                     if(message.isMessage()){
+                        MessageHandler responseMessage = message.handler();
                         
+                        out.println(responseMessage.toJSON());
                     }
                 }
             } catch (IOException ex) {
+                Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (Exception ex) {
                 Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
             }
         }

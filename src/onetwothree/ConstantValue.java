@@ -15,4 +15,8 @@ public final class ConstantValue {
 	public static final String CLIENT_CONNECT = "HELLO" ;
 	
 	public static final String SERVER_WELCOME = "WELCOME" ;
+        
+        public static final String RESPONSE_OK    = "OK" ;
+        
+        public static final String RESPONSE_ERROR = "ERROR" ;
 }
