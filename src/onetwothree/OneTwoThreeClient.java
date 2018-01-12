@@ -209,6 +209,7 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
 
             String response;
             response = in.readLine();
+			System.out.println(response);
             //            System.out.println(response);
             MessageHandler messResponse = new MessageHandler(response);
             StringMap<String> responseContent = messResponse.getContent();

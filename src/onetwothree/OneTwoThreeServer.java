@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,7 +24,6 @@ import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import static onetwothree.ConstantValue.SERVER_NEWCOMER;
 import static onetwothree.ConstantValue.SERVER_NEWOUTER;
-import org.json.JSONObject;
 
 /**
  *
@@ -33,6 +33,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 
 	private static ServerSocket listener;
         private static DefaultListModel<String> listModel = new DefaultListModel<>();
+		private static ArrayList<Authentication> clientList ;
         private static Map<String, Authentication> clients 
                 = new HashMap<>();
         private static int numClient = 0;
@@ -43,6 +44,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 	 */
 	public OneTwoThreeServer() {
 		initComponents();
+		clientList = new ArrayList<>();
 	}
 
 	/**
@@ -188,15 +190,18 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
     
         private final Socket socket;
         private int numOrder;
+		private static BufferedReader in;
+		private static PrintWriter out;
         
         public Authentication(Socket _socket){
             this.socket = _socket;
+			System.out.println(socket.toString());
         }
         public void run(){
             try {
-                BufferedReader in = new BufferedReader(
+                in = new BufferedReader(
                         new InputStreamReader(socket.getInputStream()));
-                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                out = new PrintWriter(socket.getOutputStream(), true);
                 while(true) {
                     String input = in.readLine();
                     MessageHandler message = new MessageHandler(input);
@@ -234,30 +239,48 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         }
         
         private void announNewComer(String username){
-            Iterator setClients = clients.entrySet().iterator();
-            MessageHandler message;
-            while (setClients.hasNext()) {
-                Map.Entry pair = (Map.Entry)setClients.next();
-                StringMap<String> responseContent = new StringMap<>();
+			clients.forEach((client, handleSocket) -> {
+                System.out.println("announNewComer username " + username);
+				System.out.println("announNewComer client " + client);
+				System.out.println("announNewComer socket " + handleSocket.socket.toString());
+				StringMap<String> responseContent = new StringMap<>();
                 responseContent.put(username, "online");
-                System.out.println(pair.getKey().toString());
-                message = new MessageHandler(SERVER_NEWCOMER, responseContent, "SERVER", pair.getKey().toString());
-                setClients.remove(); // avoids a ConcurrentModificationException
-            }
+                MessageHandler message = new MessageHandler(SERVER_NEWCOMER, responseContent, "SERVER", client);
+				try {
+					handleSocket.sendMessage(message);
+				} catch (Exception ex) {
+					Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			});
             
         }
         
         private void announNewOuter(StringMap<String> responseContent){
-            Iterator setClients = clients.entrySet().iterator();
-            MessageHandler message;
-            while (setClients.hasNext()) {
-                Map.Entry pair = (Map.Entry)setClients.next();
-                System.out.println(pair.getKey().toString());
-                message = new MessageHandler(SERVER_NEWOUTER, responseContent, "SERVER", pair.getKey().toString());
-                setClients.remove(); // avoids a ConcurrentModificationException
-            }
-            
+			
+			clients.forEach((username, handleSocket) -> {
+                System.out.println("announNewOuter username" + username);
+                MessageHandler message = new MessageHandler(SERVER_NEWOUTER, responseContent, "SERVER", username);
+				try {
+					handleSocket.sendMessage(message);
+				} catch (Exception ex) {
+					Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			});
         }
+		
+		public void sendMessage(MessageHandler message) {
+			if(message.isMessage()){
+				try {
+					System.out.println(this.socket.toString());
+					PrintWriter output = new PrintWriter(this.socket.getOutputStream(), true );
+					output.println(message.toJSON());
+					output.flush();
+					
+				} catch (Exception ex) {
+					Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
+		}
         
     }
 
