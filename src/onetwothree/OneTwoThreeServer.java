@@ -6,14 +6,23 @@
 package onetwothree;
 
 import com.google.gson.Gson;
+import com.google.gson.internal.StringMap;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.DefaultListModel;
+import static onetwothree.ConstantValue.SERVER_NEWCOMER;
+import static onetwothree.ConstantValue.SERVER_NEWOUTER;
 import org.json.JSONObject;
 
 /**
@@ -23,6 +32,12 @@ import org.json.JSONObject;
 public class OneTwoThreeServer extends javax.swing.JFrame {
 
 	private static ServerSocket listener;
+        private static DefaultListModel<String> listModel = new DefaultListModel<>();
+        private static Map<String, Authentication> clients 
+                = new HashMap<>();
+        private static int numClient = 0;
+        private static OneTwoThreeServer server;
+        
 	/**
 	 * Creates new form OneTwoThreeServer
 	 */
@@ -94,6 +109,10 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    public void setAreaLog(String log){
+        areaLog.append(log);
+    }
+    
     private void btnStopServerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStopServerActionPerformed
 		try {
 			areaLog.append("Server is stopped!");
@@ -140,7 +159,9 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				new OneTwoThreeServer().setVisible(true);
+                            server = new OneTwoThreeServer();
+                            server.setVisible(true);
+                            server.listUser.setModel(listModel);
 			}
 		});
 		
@@ -166,6 +187,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
     private static class Authentication extends Thread {
     
         private final Socket socket;
+        private int numOrder;
         
         public Authentication(Socket _socket){
             this.socket = _socket;
@@ -180,8 +202,28 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                     MessageHandler message = new MessageHandler(input);
                     if(message.isMessage()){
                         MessageHandler responseMessage = message.handler();
-                        
+                        if(responseMessage.isMessage() && 
+                           responseMessage.getHeader().equals(ConstantValue.SERVER_LOGOUT_SUCCESS))
+                        {
+                            String username = responseMessage.getTo();
+                            listModel.remove(numOrder);
+                            server.setAreaLog("User name " + username + " has logged out.");
+                            clients.remove(username);
+                            socket.close();
+                            announNewOuter(responseMessage.getContent());
+                        }
                         out.println(responseMessage.toJSON());
+                        if(responseMessage.isMessage() && 
+                           responseMessage.getHeader().equals(ConstantValue.SERVER_WELCOME))
+                        {
+                            String username = responseMessage.getTo();
+                            listModel.addElement(username + "(online)");
+                            numOrder = listModel.getSize() - 1;
+                            server.setAreaLog("User name " + username + " has logged in.");
+                            announNewComer(username);
+                            clients.put(username, this);
+                        }
+                        
                     }
                 }
             } catch (IOException ex) {
@@ -189,6 +231,32 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
             } catch (Exception ex) {
                 Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
+        
+        private void announNewComer(String username){
+            Iterator setClients = clients.entrySet().iterator();
+            MessageHandler message;
+            while (setClients.hasNext()) {
+                Map.Entry pair = (Map.Entry)setClients.next();
+                StringMap<String> responseContent = new StringMap<>();
+                responseContent.put(username, "online");
+                System.out.println(pair.getKey().toString());
+                message = new MessageHandler(SERVER_NEWCOMER, responseContent, "SERVER", pair.getKey().toString());
+                setClients.remove(); // avoids a ConcurrentModificationException
+            }
+            
+        }
+        
+        private void announNewOuter(StringMap<String> responseContent){
+            Iterator setClients = clients.entrySet().iterator();
+            MessageHandler message;
+            while (setClients.hasNext()) {
+                Map.Entry pair = (Map.Entry)setClients.next();
+                System.out.println(pair.getKey().toString());
+                message = new MessageHandler(SERVER_NEWOUTER, responseContent, "SERVER", pair.getKey().toString());
+                setClients.remove(); // avoids a ConcurrentModificationException
+            }
+            
         }
         
     }

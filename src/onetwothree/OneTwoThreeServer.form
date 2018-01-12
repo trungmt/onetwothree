@@ -83,9 +83,6 @@
                 <TitledBorder title="Online User List"/>
               </Border>
             </Property>
-            <Property name="model" type="javax.swing.ListModel" editor="org.netbeans.modules.form.editors2.ListModelEditor">
-              <StringArray count="0"/>
-            </Property>
             <Property name="focusable" type="boolean" value="false"/>
           </Properties>
           <AuxValues>

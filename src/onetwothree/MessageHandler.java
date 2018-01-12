@@ -17,7 +17,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static onetwothree.ConstantValue.CLIENT_CONNECT;
+import static onetwothree.ConstantValue.*;
+import static onetwothree.ConstantValue.CLIENT_LOGOUT;
 import static onetwothree.ConstantValue.DEFAULT_TO;
 
 /**
@@ -156,6 +157,9 @@ public class MessageHandler {
         if (this.header.equals(CLIENT_CONNECT)) {
             return serverLoginHandler();
         }
+        if (this.header.equals(CLIENT_LOGOUT)) {
+            return serverLogoutHandler();
+        }
         return invalid();
 
     }
@@ -177,7 +181,82 @@ public class MessageHandler {
             MessageHandler response;
             StringMap<String> responseContent = new StringMap<>();
             if (rset.next()) {
-                responseContent.put("response", "OK");
+                PreparedStatement getUserList = conn.prepareStatement(
+                    "SELECT username, status.name as status "
+                  + "FROM users "
+                  + "INNER JOIN status ON users.status = status.id "
+                  + "WHERE status > 0");
+                ResultSet userList = getUserList.executeQuery();
+
+                while (userList.next()) {
+                    String name = userList.getString("username");
+                    if(name.equals(username)){
+                        continue;
+                    }
+                    String status = userList.getString("status");
+                    
+                    responseContent.put(name, status);
+                }
+                userList.close();
+                getUserList.close();
+                
+                updateUserStatus(username, 1);
+                
+                response = new MessageHandler(ConstantValue.SERVER_WELCOME, responseContent, "SERVER", username);
+                System.out.println(response.toJSON());
+            } else {
+                responseContent.put("response_content", "Tài khoản hoặc mật khẩu không đúng.");
+                response = new MessageHandler(CLIENT_CONNECT, responseContent, "SERVER", username);
+            }
+            conn.close();
+            return response;
+        } catch (SQLException ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        } 
+        return null;
+    }
+
+    private MessageHandler invalid() throws Exception {
+        MessageHandler response;
+        StringMap<String> responseContent = new StringMap<>();
+        responseContent.put("response", "Sai cú pháp");
+        response = new MessageHandler("ERROR", responseContent, "SERVER", "");
+        
+        return response;
+    }
+    
+    private void updateUserStatus(String username, int status) throws SQLException{
+        Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
+        PreparedStatement stmt = conn.prepareStatement(
+                "UPDATE users SET status = ? WHERE username = ?");
+        stmt.setInt(1, status);
+        stmt.setString(2, username);
+        stmt.executeUpdate();
+        stmt.close();
+        conn.close();
+    }
+
+    private MessageHandler serverLogoutHandler() {
+        try {
+            String username = (String) content.get("username");
+            String password = (String) content.get("password");
+            System.out.println("u " + username + " p " + password);
+            Connection conn = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
+            PreparedStatement stmt = conn.prepareStatement(
+                    "select * from users WHERE username = ? AND password = ? AND status = 1");
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            ResultSet rset = stmt.executeQuery();
+
+            
+            MessageHandler response;
+            StringMap<String> responseContent = new StringMap<>();
+            if (rset.next()) {
+                updateUserStatus(username, 0);
                 
                 PreparedStatement getUserList = conn.prepareStatement(
                     "SELECT username, status.name as status "
@@ -198,30 +277,19 @@ public class MessageHandler {
                 userList.close();
                 getUserList.close();
                 
-                response = new MessageHandler("HELLO", responseContent, "SERVER", username);
+                response = new MessageHandler(SERVER_LOGOUT_SUCCESS, responseContent, "SERVER", username);
                 System.out.println(response.toJSON());
-                return response;
             } else {
-                responseContent.put("response", "ERROR");
-                responseContent.put("response_content", "Tài khoản hoặc mật khẩu không đúng.");
-                response = new MessageHandler("HELLO", responseContent, "SERVER", username);
-                return response;
+                response = new MessageHandler(SERVER_LOGOUT_SUCCESS, responseContent, "SERVER", username);
             }
+            conn.close();
+            return response;
         } catch (SQLException ex) {
             Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception ex) {
             Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        } 
         return null;
-    }
-
-    private MessageHandler invalid() throws Exception {
-        MessageHandler response;
-        StringMap<String> responseContent = new StringMap<>();
-        responseContent.put("response", "Sai cú pháp");
-        response = new MessageHandler("ERROR", responseContent, "SERVER", "");
-        
-        return response;
     }
 
 }

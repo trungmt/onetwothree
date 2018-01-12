@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
 
 /**
@@ -28,6 +29,8 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
     private BufferedReader in;
     private PrintWriter out;
     protected Socket socket;
+    private static DefaultListModel<String> listModel = new DefaultListModel<>();
+    private static OneTwoThreeClient client;
     /**
      * Creates new form OneTwoThreeClient
      */
@@ -54,14 +57,21 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jLayeredPane1 = new javax.swing.JLayeredPane();
         textUsername = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
-        btnLogin = new javax.swing.JButton();
         textPassword = new javax.swing.JPasswordField();
+        btnLogin = new javax.swing.JButton();
         lbError = new javax.swing.JLabel();
+        btnSignUp = new javax.swing.JButton();
+        jLayeredPane2 = new javax.swing.JLayeredPane();
+        btnLogOut = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        listUser = new javax.swing.JList<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setResizable(false);
 
         textUsername.setName("textUsername"); // NOI18N
 
@@ -80,29 +90,45 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
             }
         });
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(115, 115, 115)
-                        .addComponent(btnLogin))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(28, 28, 28)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jLabel2)
-                            .addComponent(jLabel1)
-                            .addComponent(textUsername, javax.swing.GroupLayout.DEFAULT_SIZE, 242, Short.MAX_VALUE)
-                            .addComponent(textPassword)
-                            .addComponent(lbError, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addContainerGap(31, Short.MAX_VALUE))
+        btnSignUp.setText("Sign Up");
+        btnSignUp.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSignUpActionPerformed(evt);
+            }
+        });
+
+        jLayeredPane1.setLayer(textUsername, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jLayeredPane1.setLayer(jLabel1, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jLayeredPane1.setLayer(jLabel2, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jLayeredPane1.setLayer(textPassword, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jLayeredPane1.setLayer(btnLogin, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jLayeredPane1.setLayer(lbError, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jLayeredPane1.setLayer(btnSignUp, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        javax.swing.GroupLayout jLayeredPane1Layout = new javax.swing.GroupLayout(jLayeredPane1);
+        jLayeredPane1.setLayout(jLayeredPane1Layout);
+        jLayeredPane1Layout.setHorizontalGroup(
+            jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jLayeredPane1Layout.createSequentialGroup()
+                .addContainerGap(27, Short.MAX_VALUE)
+                .addGroup(jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jLabel2)
+                    .addComponent(jLabel1)
+                    .addComponent(textUsername)
+                    .addComponent(textPassword)
+                    .addComponent(lbError, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(31, 31, 31))
+            .addGroup(jLayeredPane1Layout.createSequentialGroup()
+                .addGap(66, 66, 66)
+                .addComponent(btnLogin, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(btnSignUp, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(208, 208, 208)
+        jLayeredPane1Layout.setVerticalGroup(
+            jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jLayeredPane1Layout.createSequentialGroup()
+                .addContainerGap(235, Short.MAX_VALUE)
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(textUsername, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -111,48 +137,124 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(textPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(btnLogin)
+                .addGroup(jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btnLogin)
+                    .addComponent(btnSignUp))
                 .addGap(18, 18, 18)
                 .addComponent(lbError, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(144, Short.MAX_VALUE))
+                .addGap(188, 188, 188))
+        );
+
+        btnLogOut.setText("Đăng xuất");
+        btnLogOut.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnLogOutActionPerformed(evt);
+            }
+        });
+
+        listUser.setBorder(javax.swing.BorderFactory.createTitledBorder("Danh sách người chơi"));
+        listUser.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        jScrollPane1.setViewportView(listUser);
+
+        jLayeredPane2.setLayer(btnLogOut, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jLayeredPane2.setLayer(jScrollPane1, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        javax.swing.GroupLayout jLayeredPane2Layout = new javax.swing.GroupLayout(jLayeredPane2);
+        jLayeredPane2.setLayout(jLayeredPane2Layout);
+        jLayeredPane2Layout.setHorizontalGroup(
+            jLayeredPane2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(btnLogOut, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(jLayeredPane2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 286, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        jLayeredPane2Layout.setVerticalGroup(
+            jLayeredPane2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jLayeredPane2Layout.createSequentialGroup()
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 482, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(btnLogOut, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jLayeredPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addComponent(jLayeredPane2, javax.swing.GroupLayout.Alignment.TRAILING))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jLayeredPane1)
+            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addComponent(jLayeredPane2, javax.swing.GroupLayout.Alignment.TRAILING))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
-        try {                                         
+        try {
             username = textUsername.getText();
             password = new String(textPassword.getPassword());
             StringMap<String> content = new StringMap<>();
             content.put("username", username);
             content.put("password", password);
             MessageHandler messLogin = new MessageHandler("HELLO", content, username, "SERVER");
-            
+
             out.println(messLogin.toJSON());
-            
+
             String response;
             response = in.readLine();
-//            System.out.println(response);
+            //            System.out.println(response);
             MessageHandler messResponse = new MessageHandler(response);
+            StringMap<String> responseContent = messResponse.getContent();
             if (messResponse.isMessage() &&
-                messResponse.getHeader().equals(ConstantValue.CLIENT_CONNECT)) 
+                messResponse.getHeader().equals(ConstantValue.CLIENT_CONNECT))
             {
-                StringMap<String> responseContent = messResponse.getContent();
-                if( responseContent.containsKey("response") && 
-                    responseContent.get("response").equals(ConstantValue.RESPONSE_ERROR)){
-                    lbError.setText(responseContent.get("response_content"));
-                }
-                if( responseContent.containsKey("response") && 
-                    responseContent.get("response").equals(ConstantValue.RESPONSE_OK)){
-                    Set<Map.Entry<String, String>> userList = responseContent.entrySet();
-                    for (Map.Entry<String, String> item : userList) {
-                        if(!item.getKey().equals("response")) {
-                            System.out.println("username " + item.getKey() + " status " + item.getValue());
-                        }
+                //Login Error
+                lbError.setText(responseContent.get("response_content"));
+
+            }
+            if (messResponse.isMessage() &&
+                messResponse.getHeader().equals(ConstantValue.SERVER_WELCOME))
+            {
+                Set<Map.Entry<String, String>> userList = responseContent.entrySet();
+                for (Map.Entry<String, String> item : userList) {
+                    if(!item.getKey().equals("response")) {
+                        listModel.addElement(item.getKey() + "(" + item.getValue() + ")");
                     }
+                    
                 }
-                
+                client.jLayeredPane1.setVisible(false);
+                client.jLayeredPane2.setVisible(true);
+            }
+            if (messResponse.isMessage() &&
+                messResponse.getHeader().equals(ConstantValue.SERVER_NEWCOMER))
+            {
+                Set<Map.Entry<String, String>> userList = responseContent.entrySet();
+                for (Map.Entry<String, String> item : userList) {
+                    if(!item.getKey().equals("response")) {
+                        listModel.addElement(item.getKey() + "(" + item.getValue() + ")");
+                    }
+                    
+                }
+            }
+            
+            if (messResponse.isMessage() &&
+                messResponse.getHeader().equals(ConstantValue.SERVER_NEWOUTER))
+            {
+                Set<Map.Entry<String, String>> userList = responseContent.entrySet();
+                listModel.removeAllElements();
+                for (Map.Entry<String, String> item : userList) {
+                    if(!item.getKey().equals("response")) {
+                        listModel.addElement(item.getKey() + "(" + item.getValue() + ")");
+                    }
+                    
+                }
             }
         } catch (IOException ex) {
             Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
@@ -160,6 +262,31 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
             Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_btnLoginActionPerformed
+
+    private void btnSignUpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSignUpActionPerformed
+        
+    }//GEN-LAST:event_btnSignUpActionPerformed
+
+    private void btnLogOutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLogOutActionPerformed
+        try {
+            username = textUsername.getText();
+            StringMap<String> content = new StringMap<>();
+            content.put("username", username);
+            content.put("password", password);
+            MessageHandler messLogin = new MessageHandler("BYE", content, username, "SERVER");
+
+            out.println(messLogin.toJSON());
+            socket.close();
+
+            client.listModel.removeAllElements();
+            client.jLayeredPane1.setVisible(true);
+            client.jLayeredPane2.setVisible(false);
+        } catch (IOException ex) {
+            Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_btnLogOutActionPerformed
 
     /**
      * @param args the command line arguments
@@ -191,8 +318,11 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                OneTwoThreeClient client = new OneTwoThreeClient();
+                client = new OneTwoThreeClient();
                 client.setVisible(true);
+                client.jLayeredPane2.setVisible(false);
+                client.jLayeredPane1.setVisible(true);
+                client.listUser.setModel(listModel);
                 try {
                     client.connectToServer();
                 } catch (IOException ex) {
@@ -203,10 +333,16 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnLogOut;
     private javax.swing.JButton btnLogin;
+    private javax.swing.JButton btnSignUp;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLayeredPane jLayeredPane1;
+    private javax.swing.JLayeredPane jLayeredPane2;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JLabel lbError;
+    private javax.swing.JList<String> listUser;
     private javax.swing.JPasswordField textPassword;
     private javax.swing.JTextField textUsername;
     // End of variables declaration//GEN-END:variables

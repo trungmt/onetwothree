@@ -11,5 +11,12 @@
             <file>file:/D:/www/OTT/src/capitalize/CapitalizeServer.java</file>
             <file>file:/D:/www/OTT/src/simplesocket/DateClient.java</file>
         </group>
+        <group>
+            <file>file:/D:/www/OTT/src/onetwothree/OneTwoThreeClient.java</file>
+            <file>file:/D:/www/OTT/src/onetwothree/OneTwoThreeServer.java</file>
+            <file>file:/D:/www/OTT/src/capitalize/CapitalizeServer.java</file>
+            <file>file:/D:/www/OTT/src/onetwothree/ConstantValue.java</file>
+            <file>file:/D:/www/OTT/src/onetwothree/MessageHandler.java</file>
+        </group>
     </open-files>
 </project-private>
