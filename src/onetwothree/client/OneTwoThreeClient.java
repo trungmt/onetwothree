@@ -132,6 +132,8 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                         client.btnBack.setVisible(false);
                         client.textRetypePassword.setVisible(false);
 
+						client.textPassword.setText("");
+						client.textRetypePassword.setText("");
                         client.btnLogin.setVisible(true);
                         client.btnOpenSignup.setVisible(true);
                     }
@@ -141,7 +143,7 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                         && messResponse.getHeader().equals(ConstantValue.SERVER_CONNECT_WAR_SUCCESS)) {
                     Set<Map.Entry<String, String>> userList = responseContent.entrySet();
                     for (Map.Entry<String, String> item : userList) {
-                        lbError.setText(responseContent.get("response_content"));
+//                        lbError.setText(responseContent.get("response_content"));
                         client.labelSignup.setVisible(false);
                         client.btnSignUp.setVisible(false);
                         client.btnBack.setVisible(false);
@@ -170,7 +172,8 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                     else {
                         StringMap<String> content = new StringMap<>();
                         content.put("response_message", "Decline");
-                        MessageHandler messAccept = new MessageHandler(PEER_CONNECT_WAR_FAILED, content, username, otherUsername);
+                        MessageHandler messDecline = new MessageHandler(PEER_CONNECT_WAR_FAILED, content, username, otherUsername);
+						out.println(messDecline.toJSON());
                     }
                 }
                 
@@ -493,13 +496,15 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
             StringMap<String> content = new StringMap<>();
             content.put("username", username);
             content.put("password", password);
-            MessageHandler messLogin = new MessageHandler("BYE", content, username, "SERVER");
+            MessageHandler messLogOut = new MessageHandler("BYE", content, username, "SERVER");
 
-            out.println(messLogin.toJSON());
+            out.println(messLogOut.toJSON());
             socket.close();
 
             client.listModel.removeAllElements();
             client.jLayeredPane1.setVisible(true);
+			client.textPassword.setText("");
+			client.textRetypePassword.setText("");
             client.jLayeredPane2.setVisible(false);
             
         } catch (IOException ex) {
@@ -550,7 +555,7 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                     MessageHandler messWar = new MessageHandler(CLIENT_CONNECT_WAR, content, username, "SERVER");
 
                     out.println(messWar.toJSON());
-
+					
                 }  catch (Exception ex) {
                     Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -598,7 +603,7 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                 client.btnSignUp.setVisible(false);
                 client.btnBack.setVisible(false);
                 client.textRetypePassword.setVisible(false);
-                
+                client.setTitle(username);
                 client.listUser.setModel(listModel);
                 try {
                     client.connectToServer();

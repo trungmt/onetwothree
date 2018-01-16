@@ -367,6 +367,9 @@ public class MessageHandler {
         try {
             String otherUsername = (String) content.get("username");
             String username = from;
+			System.out.println("A game is made from " + username + " to " + otherUsername);
+			System.out.println(this.toJSON());
+			System.out.println("-----------------------");
             Connection conn = DriverManager.getConnection(
                     "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
             PreparedStatement stmt = conn.prepareStatement(
@@ -389,6 +392,9 @@ public class MessageHandler {
                     responseContent.put("response_content", "waiting");
                     responseContent.put("otherUsername", otherUsername);
                     response = new MessageHandler(SERVER_CONNECT_WAR_SUCCESS, responseContent, "SERVER", username);
+					System.out.println("Server confirm that " + otherUsername + " is online and send message to " + otherUsername);
+					System.out.println(response.toJSON());
+					System.out.println("-----------------------");
                 }
                 System.out.println(response.toJSON());
             } else {
@@ -406,6 +412,13 @@ public class MessageHandler {
     }
 
     private MessageHandler serverConnectWarSuccessHandler() {
+		System.out.println(this.getFrom() + " accepted game with " + this.getTo());
+		try {
+			System.out.println(this.toJSON());
+		} catch (Exception ex) {
+			Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		System.out.println("-----------------------");
         return this;
     }
 

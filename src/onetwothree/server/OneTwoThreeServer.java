@@ -12,7 +12,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -32,7 +31,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 
     private static ServerSocket listener;
     private static DefaultListModel<String> listModel = new DefaultListModel<>();
-    private static ArrayList<Authentication> clientList;
     private static Map<String, Authentication> clients
             = new HashMap<>();
     private static Map<String, Game> games
@@ -45,7 +43,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
      */
     public OneTwoThreeServer() {
         initComponents();
-        clientList = new ArrayList<>();
     }
 
     /**
@@ -194,6 +191,8 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         private static PrintWriter out;
         private static String currentUsername;
         private static Game currentGame;
+		private static int orderInGame;
+		
 
         public Authentication(Socket _socket) {
             this.socket = _socket;
@@ -211,10 +210,14 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         public String getCurrentUsername(){
             return currentUsername;
         }
+		
+		public int getOrderInGame(){
+			return orderInGame;
+		}
         
-        public BufferedReader getIn(){
-            return this.in;
-        }
+		public void setOrderInGame(int order){
+			this.orderInGame = order;
+		}
 
         public void run() {
             try {
@@ -232,7 +235,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                             clients.remove(username);
 //                            out.close();
 //                            in.close();
-                            socket.close();
+//                            socket.close();
                             announNewOuter(responseMessage.getContent());
                             break;
                         }
@@ -244,7 +247,13 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                         
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.PEER_GAME_SHOW_CHOICE)) {
-                            System.out.println("respones here " + responseMessage.toJSON());
+							String choice = (String)responseMessage.getContent().get("choice");
+                            if(orderInGame == 1){
+								currentGame.setPlayer1Choice(choice);
+							} 
+							if(orderInGame == 2){
+								currentGame.setPlayer2Choice(choice);
+							}
                         }
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.SERVER_WELCOME)) {
@@ -273,6 +282,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_SUCCESS)) {
                             String otherUsername = responseMessage.getTo();
+							System.out.println("let's see who are you: " + otherUsername);
                             String username = responseMessage.getFrom();
                             Authentication player1 = clients.get(otherUsername);
                             if(player1 != null){
@@ -280,12 +290,10 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                                 askWarMessage = new MessageHandler(PEER_CONNECT_WAR_SUCCESS, responseMessage.getContent(), username, otherUsername);
                                 player1.sendMessage(askWarMessage);
                                 currentGame = player1.getCurrentGame();
-                                Thread threadGame = new Thread() {
-                                    public void run(){
-                                        currentGame.handleMessageInGame();
-                                    }
-                                };
-                                threadGame.start();
+								player1.setOrderInGame(1);
+								System.out.println("Player 1 name " + player1.getCurrentUsername());
+								System.out.println("Player 2 name " + this.getCurrentUsername());
+								setOrderInGame(2);
                                 currentGame.doGame();
                             }
                         }
@@ -300,9 +308,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 
         private void announNewComer(String username) {
             clients.forEach((client, handleSocket) -> {
-                System.out.println("announNewComer username " + username);
-                System.out.println("announNewComer client " + client);
-                System.out.println("announNewComer socket " + handleSocket.socket.toString());
                 StringMap<String> responseContent = new StringMap<>();
                 responseContent.put(username, "online");
                 MessageHandler message = new MessageHandler(SERVER_NEWCOMER, responseContent, "SERVER", client);
@@ -394,6 +399,14 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         public void setStatus(String _status){
             this.status = _status;
         }
+		
+		public void setPlayer1Choice(String choice){
+			this.player1Choice = choice;
+		}
+		
+		public void setPlayer2Choice(String choice){
+			this.player2Choice = choice;
+		}
 
         public void doGame(){
             try {
@@ -411,6 +424,14 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                             player2.sendMessage(mess2);
                             System.out.println(mess1.toJSON());
                             System.out.println(mess2.toJSON());
+							
+							StringMap<String> messChoiceContent = new StringMap<>();
+							messChoiceContent.put( "message", "show_choice" );
+							MessageHandler messChoice1 = new MessageHandler(PEER_GAME_SHOW_CHOICE, messChoiceContent, "SERVER", player1.getCurrentUsername());
+							MessageHandler messChoice2 = new MessageHandler(PEER_GAME_SHOW_CHOICE, messChoiceContent, "SERVER", player2.getCurrentUsername());
+
+							player1.sendMessage(messChoice1);
+							player2.sendMessage(messChoice2);
                         } catch (Exception ex) {
                             Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
                         }
@@ -422,19 +443,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                 // schedules the task to be run in an interval
                 timer.scheduleAtFixedRate(task, delay, intevalPeriod);
                 
-//                task.cancel();
-                
                 Thread.sleep(SLEEP);
-                
-                StringMap<String> responseContent = new StringMap<>();
-                responseContent.put( "message", "show_choice" );
-                MessageHandler messChoice1 = new MessageHandler(PEER_GAME_SHOW_CHOICE, responseContent, "SERVER", player1.getCurrentUsername());
-                MessageHandler messChoice2 = new MessageHandler(PEER_GAME_SHOW_CHOICE, responseContent, "SERVER", player2.getCurrentUsername());
-                
-                player1.sendMessage(messChoice1);
-                player2.sendMessage(messChoice2);
-                
-                Thread.sleep(5000);
                 
                 StringMap<String> resultContent = new StringMap<>();
                 resultContent.put( "result", calculateResult() );
@@ -444,11 +453,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                 player1.sendMessage(messShowResult1);
                 player2.sendMessage(messShowResult2);
                 
-                String out1 = messShowResult1.toJSON();
-                String out2 = messShowResult2.toJSON();
-                
-                System.out.println("result 1 " + out1);
-                System.out.println("result 2 " + out2);
             } catch (InterruptedException ex) {
                 Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
             } catch (Exception ex) {
@@ -457,52 +461,10 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
             
         }
         
-        public void handleMessageInGame() {
-            try {
-                status = "in-game";
-                System.out.println("asdasdasdasd");
-                while (true) {
-                    String input1 = player1.getInputMessage();
-                    String input2 = player2.getInputMessage();
-                    System.out.println("message game choice " + input1);
-                    System.out.println("message game choice " + input2);
-                    MessageHandler message1 = new MessageHandler(input1);
-                    MessageHandler message2 = new MessageHandler(input2);
-                    
-                    handleInputStream(message1);
-                    handleInputStream(message2);
-                    System.out.println("player1 choice " + message1.toJSON());
-                    System.out.println("player2 choice " + message2.toJSON());
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (Exception ex) {
-                Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        
-        private void handleInputStream(MessageHandler message){
-            if (message.isMessage()) {
-                try {
-                    MessageHandler responseMessage = message.handleGame();
-                    if (responseMessage.isMessage()
-                            && responseMessage.getHeader().equals(PEER_GAME_SHOW_CHOICE)) {
-                        String username = responseMessage.getFrom();
-                        if( username.equals ( player1.getCurrentUsername() ) ){
-                            player1Choice = (String)responseMessage.getContent().get("choice");
-                            System.out.println(player1Choice);
-                        } else if ( username.equals ( player2.getCurrentUsername() ) ) {
-                            player2Choice = (String)responseMessage.getContent().get("choice");
-                            System.out.println(player2Choice);
-                        }
-                    }
-                } catch (Exception ex) {
-                    Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }
         private String calculateResult(){
             result = "";
+			System.out.println("Player 1 choice " + player1Choice);
+			System.out.println("Player 2 choice " + player2Choice);
             if((player1Choice.equals(player2Choice)) ) {
                 result = "draw";
             }

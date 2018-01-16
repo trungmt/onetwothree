@@ -84,8 +84,10 @@ public class ClientGameBoard extends javax.swing.JFrame {
 
         btnBao1.setText("Bao");
 
+        textClientChoice.setEditable(false);
         textClientChoice.setHorizontalAlignment(javax.swing.JTextField.CENTER);
 
+        textEnemyChoice.setEditable(false);
         textEnemyChoice.setHorizontalAlignment(javax.swing.JTextField.CENTER);
 
         jLabel3.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
@@ -100,6 +102,8 @@ public class ClientGameBoard extends javax.swing.JFrame {
         textCountDown.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
         textCountDown.setHorizontalAlignment(javax.swing.JTextField.CENTER);
         textCountDown.setText("--");
+
+        lblWinner.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
