@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package onetwothree;
+package onetwothreeMisc;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -17,9 +17,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static onetwothree.ConstantValue.*;
-import static onetwothree.ConstantValue.CLIENT_LOGOUT;
-import static onetwothree.ConstantValue.DEFAULT_TO;
+import static onetwothreeMisc.ConstantValue.*;
+import static onetwothreeMisc.ConstantValue.CLIENT_LOGOUT;
+import static onetwothreeMisc.ConstantValue.DEFAULT_TO;
 
 /**
  *
@@ -160,6 +160,26 @@ public class MessageHandler {
         if (this.header.equals(CLIENT_LOGOUT)) {
             return serverLogoutHandler();
         }
+        if (this.header.equals(CLIENT_SIGNUP)) {
+            return serverSignUpHandler();
+        }
+        if (this.header.equals(CLIENT_CONNECT_WAR)) {
+            return serverConnectWarHandler();
+        }
+        if (this.header.equals(PEER_CONNECT_WAR_SUCCESS)) {
+            return serverConnectWarSuccessHandler();
+        }
+        if (this.header.equals(PEER_GAME_SHOW_CHOICE)) {
+            return serverResultHandler();
+        }
+        return invalid();
+
+    }
+    
+    public MessageHandler handleGame() throws Exception {
+        if (this.header.equals(PEER_GAME_SHOW_CHOICE)) {
+            return serverResultHandler();
+        }
         return invalid();
 
     }
@@ -172,7 +192,7 @@ public class MessageHandler {
             Connection conn = DriverManager.getConnection(
                     "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
             PreparedStatement stmt = conn.prepareStatement(
-                    "select * from users WHERE username = ? AND password = ? AND status = 0");
+                    "select * from users WHERE username = ? AND password = ?");
             stmt.setString(1, username);
             stmt.setString(2, password);
             ResultSet rset = stmt.executeQuery();
@@ -181,6 +201,10 @@ public class MessageHandler {
             MessageHandler response;
             StringMap<String> responseContent = new StringMap<>();
             if (rset.next()) {
+                if(rset.getInt("status") != 0){
+                    responseContent.put("response_content", "Truy cập bất hợp pháp vừa được thực thi.");
+                    response = new MessageHandler(CLIENT_CONNECT, responseContent, "SERVER", username);
+                }
                 PreparedStatement getUserList = conn.prepareStatement(
                     "SELECT username, status.name as status "
                   + "FROM users "
@@ -217,6 +241,51 @@ public class MessageHandler {
         } 
         return null;
     }
+    
+    private MessageHandler serverSignUpHandler() {
+        try {
+            String username = (String) content.get("username");
+            String password = (String) content.get("password");
+            System.out.println("u " + username + " p " + password);
+            Connection conn = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
+            PreparedStatement stmt = conn.prepareStatement(
+                    "select * from users WHERE username = ?");
+            stmt.setString(1, username);
+            ResultSet rset = stmt.executeQuery();
+
+            
+            MessageHandler response;
+            StringMap<String> responseContent = new StringMap<>();
+            if (rset.next()) {
+                responseContent.put("response_content", "username đã tồn tại. Vui lòng chọn username khác.");
+                response = new MessageHandler(CLIENT_SIGNUP, responseContent, "SERVER", username);
+                
+            } else {
+                PreparedStatement stmtInsert = conn.prepareStatement(
+                    "INSERT INTO users (username, password, status, created) VALUES (?, ?, 0, ?)");
+                java.sql.Timestamp date = new java.sql.Timestamp(new java.util.Date().getTime());
+                stmtInsert.setString(1, username);
+                stmtInsert.setString(2, password);
+                stmtInsert.setTimestamp(3, date);
+                System.out.println(stmtInsert.toString());
+                stmtInsert.executeUpdate();
+                stmtInsert.close();
+                conn.close();
+
+                responseContent.put("response_content", "Đăng ký thành công.");
+                response = new MessageHandler(SERVER_SIGNUP_SUCCESS, responseContent, "SERVER", username);
+                System.out.println(response.toJSON());
+            }
+            conn.close();
+            return response;
+        } catch (SQLException ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        } 
+        return null;
+    }
 
     private MessageHandler invalid() throws Exception {
         MessageHandler response;
@@ -238,6 +307,8 @@ public class MessageHandler {
         stmt.close();
         conn.close();
     }
+    
+    
 
     private MessageHandler serverLogoutHandler() {
         try {
@@ -290,6 +361,56 @@ public class MessageHandler {
             Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
         } 
         return null;
+    }
+    
+    private MessageHandler serverConnectWarHandler() {
+        try {
+            String otherUsername = (String) content.get("username");
+            String username = from;
+            Connection conn = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
+            PreparedStatement stmt = conn.prepareStatement(
+                    "select * from users WHERE username = ?");
+            stmt.setString(1, otherUsername);
+            System.out.println(stmt.toString());
+            ResultSet rset = stmt.executeQuery();
+
+            
+            MessageHandler response;
+            StringMap<String> responseContent = new StringMap<>();
+            if (rset.next()) {
+                if(rset.getInt("status") == 0){
+                    responseContent.put("response_content", "Đối thủ hiện đang offline.");
+                    response = new MessageHandler(SERVER_CONNECT_WAR_FAILED, responseContent, "SERVER", username); 
+                } else if(rset.getInt("status") == 2) {
+                    responseContent.put("response_content", "Đối thủ hiện đang trong trận.");
+                    response = new MessageHandler(SERVER_CONNECT_WAR_FAILED, responseContent, "SERVER", username); 
+                } else {
+                    responseContent.put("response_content", "waiting");
+                    responseContent.put("otherUsername", otherUsername);
+                    response = new MessageHandler(SERVER_CONNECT_WAR_SUCCESS, responseContent, "SERVER", username);
+                }
+                System.out.println(response.toJSON());
+            } else {
+                responseContent.put("response_content", "Người chơi không tồn tại.");
+                response = new MessageHandler(SERVER_CONNECT_WAR_FAILED, responseContent, "SERVER", username);
+            }
+            conn.close();
+            return response;
+        } catch (SQLException ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        } 
+        return null;
+    }
+
+    private MessageHandler serverConnectWarSuccessHandler() {
+        return this;
+    }
+
+    private MessageHandler serverResultHandler() {
+        return this;
     }
 
 }
