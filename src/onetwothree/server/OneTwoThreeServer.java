@@ -152,10 +152,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         listener = new ServerSocket(8901);
         System.out.println("Keo Bua Bao Server is Running");
 
-//                JSONObject jsonObj = new JSONObject(a);
-//                JSONObject content = jsonObj.getJSONObject("content");
-//                String pass = content.getString("username");
-//                System.out.println(pass);
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -185,13 +181,13 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 
     private static class Authentication extends Thread {
 
-        private final Socket socket;
+        private Socket socket;
         private int numOrder;
-        private static BufferedReader in;
-        private static PrintWriter out;
-        private static String currentUsername;
-        private static Game currentGame;
-		private static int orderInGame;
+        private BufferedReader in;
+        private PrintWriter out;
+        private String currentUsername;
+        private Game currentGame;
+        private int orderInGame;
 		
 
         public Authentication(Socket _socket) {
@@ -237,23 +233,26 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 //                            in.close();
 //                            socket.close();
                             announNewOuter(responseMessage.getContent());
-                            break;
                         }
                         if (responseMessage.isMessage()
                                 && !responseMessage.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_SUCCESS)
                                 && !responseMessage.getHeader().equals(ConstantValue.PEER_GAME_SHOW_CHOICE)) {
                             out.println(responseMessage.toJSON());
+                            if(responseMessage.getHeader().equals(ConstantValue.SERVER_LOGOUT_SUCCESS)){
+                                break;
+                            }
                         }
                         
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.PEER_GAME_SHOW_CHOICE)) {
-							String choice = (String)responseMessage.getContent().get("choice");
+                            System.out.println(responseMessage.toJSON() + " order in game " + orderInGame);
+                            String choice = (String)responseMessage.getContent().get("choice");
                             if(orderInGame == 1){
-								currentGame.setPlayer1Choice(choice);
-							} 
-							if(orderInGame == 2){
-								currentGame.setPlayer2Choice(choice);
-							}
+                                    currentGame.setPlayer1Choice(choice);
+                            } 
+                            if(orderInGame == 2){
+                                    currentGame.setPlayer2Choice(choice);
+                            }
                         }
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.SERVER_WELCOME)) {
@@ -263,6 +262,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                             server.setAreaLog("User name " + username + " has logged in.");
                             announNewComer(username);
                             clients.put(username, this);
+                            System.out.println("current username " + currentUsername);
                             currentUsername = username;
                         }
                         if (responseMessage.isMessage()
@@ -270,6 +270,8 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                             String otherUsername = responseMessage.getContent().get("otherUsername").toString();
                             String username = responseMessage.getTo();
                             Authentication player2 = clients.get(otherUsername);
+                            System.out.println("p1 " + this.getCurrentUsername());
+                            System.out.println("p2 " + player2.getCurrentUsername());
                             if(player2 != null){
                                 MessageHandler askWarMessage;
                                 StringMap<String> askWarContent = new StringMap<>();
@@ -282,7 +284,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_SUCCESS)) {
                             String otherUsername = responseMessage.getTo();
-							System.out.println("let's see who are you: " + otherUsername);
                             String username = responseMessage.getFrom();
                             Authentication player1 = clients.get(otherUsername);
                             if(player1 != null){
@@ -356,7 +357,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         /**
          * @return the currentGame
          */
-        public static Game getCurrentGame() {
+        public Game getCurrentGame() {
             return currentGame;
         }
 
@@ -365,22 +366,18 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
     private static class Game{
         private Authentication player1;
         private Authentication player2;
-        private static String player1Choice = "";
-        private static String player2Choice = "";
-        private static Authentication winner;
-        private static Authentication loser;
-        private static String result;
+        private String player1Choice = "";
+        private String player2Choice = "";
+        private String result;
         
         private String status;
-        private static int countdown = COUNTDOWN_TOTAL;
-        private static TimerTask task;
-        private static Timer timer;
+        private int countdown = COUNTDOWN_TOTAL;
+        private TimerTask task;
+        private Timer timer;
         
         public Game(Authentication player1, Authentication player2){
             this.player1 = player1;
             this.player2 = player2;
-//            this.in1     = player1.getIn();
-//            this.in2     = player2.getIn();
             status = "waiting";
         }
         
@@ -425,13 +422,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                             System.out.println(mess1.toJSON());
                             System.out.println(mess2.toJSON());
 							
-							StringMap<String> messChoiceContent = new StringMap<>();
-							messChoiceContent.put( "message", "show_choice" );
-							MessageHandler messChoice1 = new MessageHandler(PEER_GAME_SHOW_CHOICE, messChoiceContent, "SERVER", player1.getCurrentUsername());
-							MessageHandler messChoice2 = new MessageHandler(PEER_GAME_SHOW_CHOICE, messChoiceContent, "SERVER", player2.getCurrentUsername());
-
-							player1.sendMessage(messChoice1);
-							player2.sendMessage(messChoice2);
                         } catch (Exception ex) {
                             Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
                         }
@@ -443,19 +433,11 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                 // schedules the task to be run in an interval
                 timer.scheduleAtFixedRate(task, delay, intevalPeriod);
                 
-                Thread.sleep(SLEEP);
                 
-                StringMap<String> resultContent = new StringMap<>();
-                resultContent.put( "result", calculateResult() );
-                MessageHandler messShowResult1 = new MessageHandler(PEER_GAME_SHOW_RESULT, resultContent, "SERVER", player1.getCurrentUsername());
-                MessageHandler messShowResult2 = new MessageHandler(PEER_GAME_SHOW_RESULT, resultContent, "SERVER", player2.getCurrentUsername());
                 
-                player1.sendMessage(messShowResult1);
-                player2.sendMessage(messShowResult2);
                 
-            } catch (InterruptedException ex) {
-                Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (Exception ex) {
+                
+            }  catch (Exception ex) {
                 Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
             } 
             
@@ -490,10 +472,30 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
             }
             return result;
         }
-        private static final int setCountDown(){
-            if (countdown == 1)
+        private final int setCountDown() throws InterruptedException{
+            if (countdown == 1){
                 timer.cancel();
+            
+                StringMap<String> messChoiceContent = new StringMap<>();
+                messChoiceContent.put( "message", "show_choice" );
+                MessageHandler messChoice1 = new MessageHandler(PEER_GAME_SHOW_CHOICE, messChoiceContent, "SERVER", player1.getCurrentUsername());
+                MessageHandler messChoice2 = new MessageHandler(PEER_GAME_SHOW_CHOICE, messChoiceContent, "SERVER", player2.getCurrentUsername());
+
+                player1.sendMessage(messChoice1);
+                player2.sendMessage(messChoice2);
                 
+                Thread.sleep(4000);
+                
+                StringMap<String> resultContent = new StringMap<>();
+                resultContent.put( "result", calculateResult() );
+                resultContent.put( player1.getCurrentUsername(), player1Choice );
+                resultContent.put( player2.getCurrentUsername(), player2Choice );
+                MessageHandler messShowResult1 = new MessageHandler(PEER_GAME_SHOW_RESULT, resultContent, "SERVER", player1.getCurrentUsername());
+                MessageHandler messShowResult2 = new MessageHandler(PEER_GAME_SHOW_RESULT, resultContent, "SERVER", player2.getCurrentUsername());
+                
+                player1.sendMessage(messShowResult1);
+                player2.sendMessage(messShowResult2);
+            }   
             return --countdown;
         }
     }

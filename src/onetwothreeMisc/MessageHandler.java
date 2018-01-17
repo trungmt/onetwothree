@@ -349,7 +349,6 @@ public class MessageHandler {
                 getUserList.close();
                 
                 response = new MessageHandler(SERVER_LOGOUT_SUCCESS, responseContent, "SERVER", username);
-                System.out.println(response.toJSON());
             } else {
                 response = new MessageHandler(SERVER_LOGOUT_SUCCESS, responseContent, "SERVER", username);
             }

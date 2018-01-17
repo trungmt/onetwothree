@@ -31,20 +31,21 @@ import static onetwothreeMisc.ConstantValue.*;
  */
 public class OneTwoThreeClient extends javax.swing.JFrame {
 
-    private static String username;
-    private static String password;
+    private String username;
+    private String password;
+    private String serverAddress;
     private BufferedReader in;
     private PrintWriter out;
     protected Socket socket;
     private static DefaultListModel<String> listModel = new DefaultListModel<>();
     private static OneTwoThreeClient client;
-    private static Thread thread;
-    private static Map<String, Integer> clients
+    private Thread thread;
+    private Map<String, Integer> clients
             = new HashMap<>();
-    private static String currentEnemy;
-    private static int currentStatus;
-    private static ClientGameBoard gameBoard;
-    private static String currentChoice = null;
+    private String currentEnemy;
+    private int currentStatus;
+    private ClientGameBoard gameBoard;
+    private String currentChoice = null;
     /**
      * Creates new form OneTwoThreeClient
      */
@@ -55,16 +56,25 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
     public void setCurrentChoice(String choice){
         this.currentChoice = choice;
     }
+    
+    public String getCurrentEnemy(){
+        return currentEnemy;
+    }
+    
     public void connectToServer() throws IOException {
-        String serverAddress = JOptionPane.showInputDialog(this,
-                "Enter IP Address of the Server:",
-                "Welcome to the Capitalization Program",
-                JOptionPane.QUESTION_MESSAGE);
+        if(socket == null || socket.isClosed()){
+            if(socket == null) {
+                serverAddress = JOptionPane.showInputDialog(this,
+                        "Enter IP Address of the Server:",
+                        "Welcome to the Capitalization Program",
+                        JOptionPane.QUESTION_MESSAGE);
+            }
 
-        socket = new Socket(serverAddress, 8901);
-        System.out.println(socket.toString());
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        out = new PrintWriter(socket.getOutputStream(), true);
+            socket = new Socket(serverAddress, 8901);
+            System.out.println(socket.toString());
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(socket.getOutputStream(), true);
+        }
     }
     
     public void handleInputStream(){
@@ -88,11 +98,22 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                     for (Map.Entry<String, String> item : userList) {
                         if (!item.getKey().equals("response")) {
                             listModel.addElement(item.getKey() + "(" + item.getValue() + ")");
+                            client.setTitle(username);
                         }
 
                     }
                     client.jLayeredPane1.setVisible(false);
                     client.jLayeredPane2.setVisible(true);
+                }
+                if (messResponse.isMessage()
+                        && messResponse.getHeader().equals(ConstantValue.SERVER_LOGOUT_SUCCESS)) {
+                    socket.close();
+                    client.listModel.removeAllElements();
+                    client.jLayeredPane1.setVisible(true);
+                    client.textPassword.setText("");
+                    client.textRetypePassword.setText("");
+                    client.jLayeredPane2.setVisible(false);
+                    break;
                 }
                 if (messResponse.isMessage()
                         && messResponse.getHeader().equals(ConstantValue.SERVER_NEWCOMER)) {
@@ -195,7 +216,8 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                         out.println(choiceMessage.toJSON());
                         System.out.println(choiceMessage.toJSON());
                     } 
-                    
+                    gameBoard.setCountDown("0");
+//                    gameBoard.setWinner("Đợi kết quả từ server.");
                 }
                 
                 if (messResponse.isMessage()
@@ -207,11 +229,13 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                 if (messResponse.isMessage()
                         && messResponse.getHeader().equals(ConstantValue.PEER_GAME_SHOW_RESULT)) {
                     String result = (String)messResponse.getContent().get("result");
+                    String enemyChoice = (String)messResponse.getContent().get(currentEnemy);
                     if(result.equals(username)){
                         gameBoard.setWinner("Bạn");
                     } else {
                         gameBoard.setWinner(result);
                     }
+                    gameBoard.setEnemyChoice(enemyChoice);
                 }
                 
             }
@@ -451,6 +475,13 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
     private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
         client.lbError.setText("");
         try {
+            client.connectToServer();
+            Thread thread = new Thread() {
+                public void run(){
+                    client.handleInputStream();
+                }
+            };
+            thread.start();
             username = textUsername.getText();
             password = passwordCrypt( new String(textPassword.getPassword()) );
             StringMap<String> content = new StringMap<>();
@@ -469,6 +500,13 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
 
     private void btnSignUpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSignUpActionPerformed
         try {
+            client.connectToServer();
+            Thread thread = new Thread() {
+                public void run(){
+                    client.handleInputStream();
+                }
+            };
+            thread.start();
             username = textUsername.getText();
             password = passwordCrypt( new String(textPassword.getPassword()) );
             String retypePassword = passwordCrypt( new String(textRetypePassword.getPassword()) );
@@ -499,14 +537,6 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
             MessageHandler messLogOut = new MessageHandler("BYE", content, username, "SERVER");
 
             out.println(messLogOut.toJSON());
-            socket.close();
-
-            client.listModel.removeAllElements();
-            client.jLayeredPane1.setVisible(true);
-			client.textPassword.setText("");
-			client.textRetypePassword.setText("");
-            client.jLayeredPane2.setVisible(false);
-            
         } catch (IOException ex) {
             Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception ex) {
@@ -595,6 +625,7 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
+                
                 client = new OneTwoThreeClient();
                 client.setVisible(true);
                 client.jLayeredPane2.setVisible(false);
@@ -603,21 +634,22 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                 client.btnSignUp.setVisible(false);
                 client.btnBack.setVisible(false);
                 client.textRetypePassword.setVisible(false);
-                client.setTitle(username);
+                
                 client.listUser.setModel(listModel);
-                try {
-                    client.connectToServer();
-                    
-                    thread = new Thread() {
-                        public void run(){
-                            client.handleInputStream();
-                        }
-                    };
-                    thread.start();
-                    
-                } catch (IOException ex) {
-                    Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
-                }
+//                try {
+//                    client.connectToServer();
+//                    
+//                    Thread thread = new Thread() {
+//                        public void run(){
+//                            client.handleInputStream();
+//                        }
+//                    };
+//                    thread.start();
+//                    
+//                    
+//                } catch (IOException ex) {
+//                    Logger.getLogger(OneTwoThreeClient.class.getName()).log(Level.SEVERE, null, ex);
+//                }
             }
         });
     }

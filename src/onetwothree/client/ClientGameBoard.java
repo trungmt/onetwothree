@@ -50,6 +50,8 @@ public class ClientGameBoard extends javax.swing.JFrame {
         lblWinner = new javax.swing.JLabel();
         btnExit = new javax.swing.JButton();
 
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+
         jLabel1.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
         jLabel1.setText("Your Choice");
 
@@ -89,6 +91,7 @@ public class ClientGameBoard extends javax.swing.JFrame {
 
         textEnemyChoice.setEditable(false);
         textEnemyChoice.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        textEnemyChoice.setText("???");
 
         jLabel3.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -103,6 +106,7 @@ public class ClientGameBoard extends javax.swing.JFrame {
         textCountDown.setHorizontalAlignment(javax.swing.JTextField.CENTER);
         textCountDown.setText("--");
 
+        lblWinner.setFont(new java.awt.Font("Tahoma", 3, 11)); // NOI18N
         lblWinner.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -272,6 +276,13 @@ public class ClientGameBoard extends javax.swing.JFrame {
         }
     }
 
+    public void setEnemyChoice(String choice){
+        if(choice == ""){
+            textEnemyChoice.setText("-");
+        } else {
+            textEnemyChoice.setText(choice);
+        }
+    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBao;
     private javax.swing.JButton btnBao1;

@@ -58,7 +58,7 @@ public final class ConstantValue {
         
         public static final int DELAY  = 1000;
         public static final int INTERVAL_TIME  = 1000;
-        public static final int SLEEP  = 12000;
+        public static final int SLEEP  = 11000;
         public static final int COUNTDOWN_TOTAL  = 10;
 //        public static final int SLEEP  = 32000;
 //        public static final int COUNTDOWN_TOTAL  = 30;
