@@ -169,6 +169,12 @@ public class MessageHandler {
         if (this.header.equals(PEER_CONNECT_WAR_SUCCESS)) {
             return serverConnectWarSuccessHandler();
         }
+        if (this.header.equals(PEER_CONNECT_WAR_FAILED)) {
+            return serverConnectWarFailedHandler();
+        }
+        if (this.header.equals(PEER_GAME_DISCONNECT)) {
+            return serverGameDisconnectHandler();
+        }
         if (this.header.equals(PEER_GAME_SHOW_CHOICE)) {
             return serverResultHandler();
         }
@@ -205,29 +211,32 @@ public class MessageHandler {
                     responseContent.put("response_content", "Truy cập bất hợp pháp vừa được thực thi.");
                     response = new MessageHandler(CLIENT_CONNECT, responseContent, "SERVER", username);
                 }
-                PreparedStatement getUserList = conn.prepareStatement(
+                else {
+                    PreparedStatement getUserList = conn.prepareStatement(
                     "SELECT username, status.name as status "
-                  + "FROM users "
-                  + "INNER JOIN status ON users.status = status.id "
-                  + "WHERE status > 0");
-                ResultSet userList = getUserList.executeQuery();
+                        + "FROM users "
+                        + "INNER JOIN status ON users.status = status.id "
+                        + "WHERE status > 0");
+                    ResultSet userList = getUserList.executeQuery();
 
-                while (userList.next()) {
-                    String name = userList.getString("username");
-                    if(name.equals(username)){
-                        continue;
+                    while (userList.next()) {
+                        String name = userList.getString("username");
+                        if(name.equals(username)){
+                            continue;
+                        }
+                        String status = userList.getString("status");
+
+                        responseContent.put(name, status);
                     }
-                    String status = userList.getString("status");
-                    
-                    responseContent.put(name, status);
+                    userList.close();
+                    getUserList.close();
+
+                    updateUserStatus(username, 1);
+
+                    response = new MessageHandler(ConstantValue.SERVER_WELCOME, responseContent, "SERVER", username);
+                    System.out.println(response.toJSON());
                 }
-                userList.close();
-                getUserList.close();
                 
-                updateUserStatus(username, 1);
-                
-                response = new MessageHandler(ConstantValue.SERVER_WELCOME, responseContent, "SERVER", username);
-                System.out.println(response.toJSON());
             } else {
                 responseContent.put("response_content", "Tài khoản hoặc mật khẩu không đúng.");
                 response = new MessageHandler(CLIENT_CONNECT, responseContent, "SERVER", username);
@@ -318,7 +327,7 @@ public class MessageHandler {
             Connection conn = DriverManager.getConnection(
                     "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
             PreparedStatement stmt = conn.prepareStatement(
-                    "select * from users WHERE username = ? AND password = ? AND status = 1");
+                    "select * from users WHERE username = ? AND password = ? AND status > 0");
             stmt.setString(1, username);
             stmt.setString(2, password);
             ResultSet rset = stmt.executeQuery();
@@ -411,17 +420,35 @@ public class MessageHandler {
     }
 
     private MessageHandler serverConnectWarSuccessHandler() {
-		System.out.println(this.getFrom() + " accepted game with " + this.getTo());
-		try {
-			System.out.println(this.toJSON());
-		} catch (Exception ex) {
-			Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		System.out.println("-----------------------");
+        String player1Name = to;
+        String player2Name = from;
+        try {
+            updateUserStatus(player1Name, 2);
+            updateUserStatus(player2Name, 2);
+        } catch (SQLException ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         return this;
     }
 
     private MessageHandler serverResultHandler() {
+        return this;
+    }
+
+    private MessageHandler serverConnectWarFailedHandler() {
+        return this; 
+    }
+
+    private MessageHandler serverGameDisconnectHandler() {
+        String username = from;
+        String otherUsername = to;
+        try {
+            updateUserStatus(username, 1);
+            updateUserStatus(otherUsername, 1);
+        } catch (SQLException ex) {
+            Logger.getLogger(MessageHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return this;
     }
 

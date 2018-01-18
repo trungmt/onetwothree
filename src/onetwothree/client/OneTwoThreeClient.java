@@ -57,8 +57,16 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
         this.currentChoice = choice;
     }
     
+    public String getUsername(){
+        return username;
+    }
+    
     public String getCurrentEnemy(){
         return currentEnemy;
+    }
+    
+    public void setCurrentEnemy(String enemy){
+        this.currentEnemy = enemy;
     }
     
     public void connectToServer() throws IOException {
@@ -176,6 +184,12 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                 }
                 
                 if (messResponse.isMessage()
+                        && messResponse.getHeader().equals(ConstantValue.SERVER_CONNECT_WAR_FAILED)) {
+                    String mess = (String)messResponse.getContent().get("response_content");
+                    JOptionPane.showMessageDialog(this, mess);
+                }
+                
+                if (messResponse.isMessage()
                         && messResponse.getHeader().equals(ConstantValue.PEER_CONNECT_WAR)) {
                     String otherUsername = (String)messResponse.getContent().get("otherUsername");
                     String mess = "User with name " + otherUsername + " wants to play with you. Accept?";
@@ -189,8 +203,9 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                         gameBoard = new ClientGameBoard(this);
                         gameBoard.setTitle("Playing with " + otherUsername);
                         gameBoard.setVisible(true);
+                        currentEnemy = otherUsername;
                     }
-                    else {
+                    else if(reply == JOptionPane.NO_OPTION){
                         StringMap<String> content = new StringMap<>();
                         content.put("response_message", "Decline");
                         MessageHandler messDecline = new MessageHandler(PEER_CONNECT_WAR_FAILED, content, username, otherUsername);
@@ -204,6 +219,21 @@ public class OneTwoThreeClient extends javax.swing.JFrame {
                     gameBoard = new ClientGameBoard(this);
                     gameBoard.setTitle("Playing with " + currentEnemy);
                     gameBoard.setVisible(true);
+                }
+                
+                if (messResponse.isMessage()
+                        && messResponse.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_FAILED)) {
+                    currentEnemy = (String)messResponse.getFrom();
+                    JOptionPane.showMessageDialog(this, currentEnemy + " từ chối tham gia trò chơi.");
+                    currentEnemy = "";
+                }
+                
+                if (messResponse.isMessage()
+                        && messResponse.getHeader().equals(ConstantValue.PEER_GAME_DISCONNECT)) {
+                    currentEnemy = (String)messResponse.getFrom();
+                    gameBoard.setWinner("Bạn");
+                    JOptionPane.showMessageDialog(gameBoard, currentEnemy + " đã thoát game. Bạn Thắng!");
+                    currentEnemy = "";
                 }
                 
                 if (messResponse.isMessage()

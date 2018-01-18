@@ -12,6 +12,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -226,9 +230,14 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.SERVER_LOGOUT_SUCCESS)) {
                             String username = responseMessage.getTo();
-                            listModel.remove(numOrder);
                             server.setAreaLog("User name " + username + " has logged out.");
                             clients.remove(username);
+                            for(int i = 0; i < listModel.getSize(); i++){
+                                String removedContent = username + "(online)";
+                                if(listModel.get(i).equals(removedContent)){
+                                    listModel.removeElementAt(i);
+                                }
+                            }
 //                            out.close();
 //                            in.close();
 //                            socket.close();
@@ -236,7 +245,9 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                         }
                         if (responseMessage.isMessage()
                                 && !responseMessage.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_SUCCESS)
-                                && !responseMessage.getHeader().equals(ConstantValue.PEER_GAME_SHOW_CHOICE)) {
+                                && !responseMessage.getHeader().equals(ConstantValue.PEER_GAME_SHOW_CHOICE) 
+                                && !responseMessage.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_FAILED)
+                                && !responseMessage.getHeader().equals(ConstantValue.PEER_GAME_DISCONNECT)) {
                             out.println(responseMessage.toJSON());
                             if(responseMessage.getHeader().equals(ConstantValue.SERVER_LOGOUT_SUCCESS)){
                                 break;
@@ -258,7 +269,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                                 && responseMessage.getHeader().equals(ConstantValue.SERVER_WELCOME)) {
                             String username = responseMessage.getTo();
                             listModel.addElement(username + "(online)");
-                            numOrder = listModel.getSize() - 1;
                             server.setAreaLog("User name " + username + " has logged in.");
                             announNewComer(username);
                             clients.put(username, this);
@@ -270,8 +280,6 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                             String otherUsername = responseMessage.getContent().get("otherUsername").toString();
                             String username = responseMessage.getTo();
                             Authentication player2 = clients.get(otherUsername);
-                            System.out.println("p1 " + this.getCurrentUsername());
-                            System.out.println("p2 " + player2.getCurrentUsername());
                             if(player2 != null){
                                 MessageHandler askWarMessage;
                                 StringMap<String> askWarContent = new StringMap<>();
@@ -281,6 +289,36 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                                 currentGame = new Game(this, player2);
                             }
                         }
+                        if (responseMessage.isMessage()
+                                && responseMessage.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_FAILED)) {
+                            String otherUsername = responseMessage.getTo();
+                            Authentication player1 = clients.get(otherUsername);
+                            if(player1 != null){
+                                player1.setCurrentGame(null);
+                                player1.sendMessage(responseMessage);
+                            }
+                        }
+                        
+                        if (responseMessage.isMessage()
+                                && responseMessage.getHeader().equals(ConstantValue.PEER_GAME_DISCONNECT)) {
+                            if(!currentGame.getStatus().equals("done")){
+                            	String otherUsername = responseMessage.getTo();
+                                Authentication otherPlayer = clients.get(otherUsername);
+                                currentGame.stopTimer();
+                                if(this.getOrderInGame() == 1){
+                                    currentGame.player1 = null;
+                                }
+                                if(this.getOrderInGame() == 2){
+                                    currentGame.player2 = null;
+                                }
+                                setCurrentGame(null);
+                                if(otherPlayer != null){
+                                    otherPlayer.sendMessage(responseMessage);
+                                }
+                            }
+                        	
+                        }
+                        
                         if (responseMessage.isMessage()
                                 && responseMessage.getHeader().equals(ConstantValue.PEER_CONNECT_WAR_SUCCESS)) {
                             String otherUsername = responseMessage.getTo();
@@ -360,6 +398,10 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
         public Game getCurrentGame() {
             return currentGame;
         }
+        
+        public void setCurrentGame(Game game) {
+            this.currentGame = game;
+        }
 
     }
 
@@ -404,13 +446,15 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
 		public void setPlayer2Choice(String choice){
 			this.player2Choice = choice;
 		}
-
+        public void stopTimer(){
+            timer.cancel();
+        }
         public void doGame(){
             try {
                 task = new TimerTask() {
                     @Override
                     public void run() {
-                        
+                        status = "ingame";
                         try {
                             StringMap<String> responseContent = new StringMap<>();
                             responseContent.put( "count_down", String.valueOf(setCountDown() ) );
@@ -495,8 +539,29 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                 
                 player1.sendMessage(messShowResult1);
                 player2.sendMessage(messShowResult2);
+                
+                try {
+                    updateUserStatus(player1.getCurrentUsername(), 1);
+                    updateUserStatus(player2.getCurrentUsername(), 1);
+                    status = "done";
+                } catch (SQLException ex) {
+                    Logger.getLogger(OneTwoThreeServer.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
             }   
             return --countdown;
         }
+        
+        private void updateUserStatus(String username, int status) throws SQLException{
+        Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/onetwothree?useSSL=false", "root", "root");
+        PreparedStatement stmt = conn.prepareStatement(
+                "UPDATE users SET status = ? WHERE username = ?");
+        stmt.setInt(1, status);
+        stmt.setString(2, username);
+        stmt.executeUpdate();
+        stmt.close();
+        conn.close();
+    }
     }
 }

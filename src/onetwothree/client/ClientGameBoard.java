@@ -5,9 +5,12 @@
  */
 package onetwothree.client;
 
+import com.google.gson.internal.StringMap;
 import static onetwothreeMisc.ConstantValue.BAO;
 import static onetwothreeMisc.ConstantValue.BUA;
 import static onetwothreeMisc.ConstantValue.KEO;
+import static onetwothreeMisc.ConstantValue.PEER_GAME_DISCONNECT;
+import onetwothreeMisc.MessageHandler;
 
 /**
  *
@@ -106,7 +109,7 @@ public class ClientGameBoard extends javax.swing.JFrame {
         textCountDown.setHorizontalAlignment(javax.swing.JTextField.CENTER);
         textCountDown.setText("--");
 
-        lblWinner.setFont(new java.awt.Font("Tahoma", 3, 11)); // NOI18N
+        lblWinner.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
         lblWinner.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -185,6 +188,11 @@ public class ClientGameBoard extends javax.swing.JFrame {
         );
 
         btnExit.setText("Exit game");
+        btnExit.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnExitActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -222,6 +230,15 @@ public class ClientGameBoard extends javax.swing.JFrame {
         client.setCurrentChoice(BAO);
         textClientChoice.setText(BAO);
     }//GEN-LAST:event_btnBaoActionPerformed
+
+    private void btnExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnExitActionPerformed
+        StringMap<String> content = new StringMap<>();
+        content.put("response_message", "Disconnect");
+        MessageHandler messOutGame = new MessageHandler(PEER_GAME_DISCONNECT, content, client.getUsername(), client.getCurrentEnemy());
+        client.sendMessage(messOutGame);
+        client.setCurrentEnemy("");
+        this.dispose();
+    }//GEN-LAST:event_btnExitActionPerformed
 
     /**
      * @param args the command line arguments

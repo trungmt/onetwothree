@@ -42,6 +42,8 @@ public final class ConstantValue {
         
         public static final String PEER_CONNECT_WAR_FAILED    = "PEER_CONNECT_WAR_FAILED" ;
         
+        public static final String PEER_GAME_DISCONNECT    = "PEER_GAME_DISCONNECT" ;
+        
         public static final String PEER_GAME_COUNT_DOWN    = "GAME_COUNT_DOWN" ;
         
         public static final String PEER_GAME_SHOW_CHOICE    = "SHOW_CHOICE" ;
