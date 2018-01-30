@@ -224,6 +224,7 @@ public class OneTwoThreeServer extends javax.swing.JFrame {
                 
                 while (true) {
                     String input = in.readLine();
+					System.out.println(input);
                     MessageHandler message = new MessageHandler(input);
                     if (message.isMessage()) {
                         MessageHandler responseMessage = message.handler();
